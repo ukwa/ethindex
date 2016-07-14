@@ -1,0 +1,2 @@
+pysolr==3.5.0
+requests==2.10.0
