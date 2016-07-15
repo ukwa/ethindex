@@ -3,3 +3,18 @@ ethos_solr:
   ports:
     - "8983:8983"
 
+grobid:
+  image: ukwa/grobid
+  ports:
+    - "8080:8080"
+
+tika:
+  image: logicalspark/docker-tikaserver
+  ports:
+    - "9998:9998"
+
+blacklight:
+  build: blacklight
+  command: bundle exec rails s -p 3000 -b '0.0.0.0'
+  links:
+    - ethos_solr
