@@ -10,6 +10,7 @@ def check_if_archived_IA(url, endpoint="http://web.archive.org/web/xmlquery.jsp"
     #r = requests.get( 'http://web.archive.org/web/*/%s' % url)
     #return r.status_code
     r = requests.get( "http://archive.org/wayback/available", params={ 'url': url} )
+    print("IA %s" % r.text)
     if 'closest' in r.json()['archived_snapshots']:
         if r.json()['archived_snapshots']['closest'].get('available', False):
             return True
@@ -17,6 +18,13 @@ def check_if_archived_IA(url, endpoint="http://web.archive.org/web/xmlquery.jsp"
 #http://www.webarchive.org.uk/wayback/archive/*/http://cadair.aber.ac.uk/dspace/bitstream/handle/2160/14050/Tomos_Y.pdf
 
 def check_if_archived_UKWA(url, endpoint='http://www.webarchive.org.uk/wayback/archive/*/'):
+    r = requests.head( '%s%s' % (endpoint,url) )
+    if r.status_code == 200:
+        return True
+    else:
+        return False
+
+def check_if_archived_LDUKWA(url, endpoint='http://crawler03.bl.uk:8080/wayback/*/'):
     r = requests.head( '%s%s' % (endpoint,url) )
     if r.status_code == 200:
         return True
@@ -43,9 +51,11 @@ def cache_url(url):
 def generate_txt(file):
     txtfile = '%s.txt' % file
     if not os.path.exists(txtfile):
-        os.system("tika -t %s > %s " % (file, txtfile))
+        os.system("java -jar tika-app-1.13.jar -t %s > %s " % (file, txtfile))
     return txtfile
 
+print( check_if_archived_LDUKWA('http://www.bl.uk') )
+print( check_if_archived_LDUKWA('http://www.bl.uk.woolly') )
 
 # Setup a Solr instance. The timeout is optional.
 solr = pysolr.Solr('http://localhost:8983/solr/ethindex', timeout=10)
@@ -60,8 +70,10 @@ with open('EThOS-test.csv', 'rb') as csvfile:
             archived_by = []
             if check_if_archived_IA(url):
                 archived_by.append('IA')
+            if check_if_archived_LDUKWA(url):
+                archived_by.append('LDUKWA')
             if check_if_archived_UKWA(url):
-                archived_by.append('UKWA')
+                archived_by.append('OUKWA')
             # Parse the ID out of the EThOS URL
             # Build the doc:
             doc = {
