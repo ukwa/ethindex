@@ -1,9 +1,15 @@
+# -*- coding: utf-8 -*- 
+
+import sys
 import os
 import csv
 import pysolr
 import requests
 import urllib
 import hashlib
+
+reload(sys)
+sys.setdefaultencoding("utf-8")
 
 def check_if_archived_IA(url, endpoint="http://web.archive.org/web/xmlquery.jsp"):
     #r = requests.get( endpoint, params={ 'type': 'urlquery', 'url': url} )
@@ -50,7 +56,7 @@ def cache_url(url):
 
 def generate_txt(file):
     txtfile = '%s.txt' % file
-    if not os.path.exists(txtfile):
+    if not os.path.exists(txtfile) or os.path.getsize(txtfile) == 0:
         os.system("java -jar tika-app-1.13.jar -t %s > %s " % (file, txtfile))
     return txtfile
 
@@ -58,7 +64,7 @@ print( check_if_archived_LDUKWA('http://www.bl.uk') )
 print( check_if_archived_LDUKWA('http://www.bl.uk.woolly') )
 
 # Setup a Solr instance. The timeout is optional.
-solr = pysolr.Solr('http://localhost:8983/solr/ethindex', timeout=10)
+solr = pysolr.Solr('http://192.168.45.251:8983/solr/ethindex', timeout=10)
 
 with open('EThOS-test.csv', 'rb') as csvfile:
     reader = csv.reader(csvfile)
@@ -88,12 +94,15 @@ with open('EThOS-test.csv', 'rb') as csvfile:
                 'archived_by_ss': archived_by
             }
             # Download to tmp for processing:
-            file = cache_url(url)
-            txtfile = generate_txt(file)
-            with open(txtfile, 'rb') as txtfo:
-                doc['pages_txt'] = txtfo.read()
+            try:
+                file = cache_url(url)
+                txtfile = generate_txt(file)
+                with open(txtfile, 'rb') as txtfo:
+                    doc['pages_txt'] = txtfo.read()
 
-            print(doc['id'])
-            solr.add([doc])
-            docs.append(doc)
+                print(doc['id'])
+                solr.add([doc])
+                docs.append(doc)
+            except Exception as e:
+                print("Exception '%s' when processing '%s'" % (e,row))
     #solr.add(docs)
